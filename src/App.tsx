@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { AdminPanel } from './components/AdminPanel';
@@ -1445,15 +1445,28 @@ export default function App() {
 
   useEffect(() => {
     // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const isDemo = localStorage.getItem('kbd_demo_session') === 'true';
-      if (isDemo && !session) {
-        setUser({ email: 'kbdfinnotech@gmail.com', id: 'demo-user' });
-      } else {
-        setUser(session?.user ?? null);
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const isDemo = localStorage.getItem('kbd_demo_session') === 'true';
+        if (isDemo && !session) {
+          setUser({ email: 'kbdfinnotech@gmail.com', id: 'demo-user' });
+        } else {
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        // Fallback to demo if session check fails but demo flag is set
+        const isDemo = localStorage.getItem('kbd_demo_session') === 'true';
+        if (isDemo) {
+          setUser({ email: 'kbdfinnotech@gmail.com', id: 'demo-user' });
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+
+    checkSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
